@@ -44,6 +44,10 @@ COPY ./scripts/embed_image.sh /usr/local/bin/embed_image.sh
 COPY ./scripts/copy_embed.sh /usr/local/bin/copy_embed.sh
 COPY manifests/test-app.yaml /etc/microshift/manifests.d/001-test-app/test-app.yaml
 COPY image-list.txt /tmp/image-list.txt
+COPY assets/fix-network.sh /usr/bin/fix-network.sh
+COPY assets/fix-network.service /etc/systemd/system/fix-network.service
+
+
 # --- PERMISSIONS FIX START ---
 # 1. Set Execute permissions for all scripts
 RUN chmod +x /usr/local/bin/*.sh
@@ -52,6 +56,10 @@ RUN /usr/local/bin/embed_image.sh /tmp/image-list.txt
 # 2. Ensure systemd unit files are 644 (not executable)
 # Note: We create the services below, but if you COPY any, fix them here.
 RUN chmod 644 /etc/systemd/system/*.service || true
+RUN chmod +x /usr/bin/fix-network.sh && \
+    chmod 644 /etc/systemd/system/fix-network.service && \
+    restorecon -v /usr/bin/fix-network.sh && \
+    restorecon -v /etc/systemd/system/fix-network.service
 
 # 3. SELinux Relabeling (Critical for systemd execution)
 # restorecon resets the labels to the system defaults for these paths
@@ -72,23 +80,6 @@ RUN useradd -m -d /var/home/hrushabh -G wheel hrushabh && echo "hrushabh:redhat"
 COPY ./scripts/microshift-embed.service /usr/lib/systemd/system/microshift-embed.service
 
 RUN printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target" > /etc/systemd/system/microshift-storage-setup.service
-# Create a script to force the gateway on boot
-RUN echo '#!/bin/bash' > /usr/bin/fix-network.sh && \
-    echo 'ip route add default via 192.168.100.1 || true' >> /usr/bin/fix-network.sh && \
-    chmod +x /usr/bin/fix-network.sh
-
-# Create a systemd service to run it before MicroShift
-RUN echo '[Unit]' > /etc/systemd/system/fix-network.service && \
-    echo 'Description=Force Default Gateway for MicroShift' >> /etc/systemd/system/fix-network.service && \
-    echo 'Before=microshift.service' >> /etc/systemd/system/fix-network.service && \
-    echo '[Service]' >> /etc/systemd/system/fix-network.service && \
-    echo 'Type=oneshot' >> /etc/systemd/system/fix-network.service && \
-    echo 'ExecStart=/usr/bin/fix-network.sh' >> /etc/systemd/system/fix-network.service && \
-    echo '[Install]' >> /etc/systemd/system/fix-network.service && \
-    echo 'WantedBy=multi-user.target' >> /etc/systemd/system/fix-network.service
-
-# Enable the service
-RUN systemctl enable fix-network.service
 
 
 RUN cat > /usr/lib/systemd/system/microshift-make-rshared.service <<'EOF'
@@ -111,4 +102,7 @@ RUN systemctl enable firewalld \
     microshift-make-rshared.service \
     microshift-embed.service \
     microshift.service \
-    microshift-storage-setup.service
+    microshift-storage-setup.service \
+    fix-network.service \
+    microshift.service
+

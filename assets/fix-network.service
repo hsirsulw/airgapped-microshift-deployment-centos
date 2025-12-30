@@ -1,0 +1,13 @@
+[Unit]
+Description=Force Default Gateway for MicroShift
+Before=microshift.service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/fix-network.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
