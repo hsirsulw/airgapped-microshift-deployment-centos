@@ -1,12 +1,12 @@
-# Airgapped MicroShift Deployment with bootc Embedded Containers
+# Airgapped MicroShift Deployment Workshop
 
-This repository provides a hands-on workshop and tooling for building offline-ready MicroShift systems using bootc (Bootable Container) images. By embedding MicroShift community edition and required container images directly into the OS image during build time, systems can start up fully functional without any network access or external registry pulls.
+This workshop demonstrates building offline-ready MicroShift systems using bootc embedded containers. By embedding MicroShift community edition and required container images directly into the OS image during build time, systems can start up fully functional without any network access or external registry pulls.
 
-## Overview
+## Workshop Overview
 
 Running Kubernetes workloads in disconnected, remote, or bandwidth-restricted environments is challenging—especially when cluster components and application images must be pulled before anything can start. MicroShift, a lightweight upstream-friendly Kubernetes distribution, is ideal for edge deployments but still depends on pulling images from a registry on first boot.
 
-This project demonstrates a community-driven approach using bootc embedded containers to build offline-ready Linux OS images. Participants will learn how to:
+This workshop demonstrates a community-driven approach using bootc embedded containers to build offline-ready Linux OS images. Participants will learn how to:
 
 - Understand how bootc enables immutable and reproducible Linux OS images
 - Embed MicroShift community edition containers and app images inside the OS during build time
@@ -52,7 +52,88 @@ This project demonstrates a community-driven approach using bootc embedded conta
 └── output/                 # Build output directory
 ```
 
-## Building the Bootc Image
+## Workshop Modules
+
+### Module 1: Foundation - Environment Setup & Bootc Basics
+
+**Objective:** Understand the edge challenge and get familiar with bootc image mode fundamentals.
+
+**Topics covered:**
+- The Edge Challenge: Bandwidth constraints and disconnected environments
+- Introduction to bootc and image mode
+- Workshop environment setup
+- Helper files and repository structure
+
+**Hands-on exercises:**
+- Clone the repository and explore the structure
+- Understand the MicroShift RPM packages and container images
+- Review the embedded container workflow
+
+### Module 2: Building the Appliance (v4.19/v4.20)
+
+**Objective:** Learn how to build bootc images with embedded MicroShift and applications.
+
+**Topics covered:**
+- Physically-bound images: Ship it with the bootc image
+- Containerfile structure and variants
+- Building different MicroShift versions
+- Embedding container images during build time
+
+**Hands-on exercises:**
+- Build the base MicroShift bootc image
+- Embed MicroShift payload and application containers
+- Create ISO images for deployment
+- Test image building with different Containerfile variants
+
+### Module 3: Deploying the Appliance
+
+**Objective:** Deploy and boot the self-contained MicroShift appliance.
+
+**Topics covered:**
+- Boot the system from embedded ISO
+- MicroShift automatic startup
+- Runtime image import process
+- Accessing the MicroShift cluster
+
+**Hands-on exercises:**
+- Create a test VM environment
+- Boot from the generated ISO
+- Verify MicroShift cluster startup
+- Deploy test applications from embedded manifests
+
+### Module 4: Bootc Switch & Updates
+
+**Objective:** Demonstrate bootc's upgrade and switching capabilities in disconnected environments.
+
+**Topics covered:**
+- Bootc switch vs traditional updates
+- Atomic updates with embedded containers
+- CentOS 10 base image demonstrations
+- Seamless OS transitions
+
+**Hands-on exercises:**
+- Build CentOS 10 variant with Containerfile.c10
+- Perform bootc switch operations
+- Demonstrate atomic upgrades
+- Show the ease of OS transitions
+
+### Module 5: Advanced Scenarios & Conclusion
+
+**Objective:** Explore advanced use cases and wrap up the workshop.
+
+**Topics covered:**
+- Local registry setup for air-gapped environments
+- Isolated network configurations
+- Troubleshooting common issues
+- Production deployment considerations
+
+**Hands-on exercises:**
+- Set up local container registry
+- Configure isolated networking
+- Deploy complex applications
+- Workshop recap and Q&A
+
+## Quick Start
 
 1. **Clone the repository:**
    ```bash
@@ -60,29 +141,25 @@ This project demonstrates a community-driven approach using bootc embedded conta
    cd airgapped-microshift-deployment-centos
    ```
 
-2. **Prepare RPM packages:**
-   - Ensure `microshift-rpms-4.20x86_64/` or `rpms/` directories contain the required MicroShift RPMs
-   - The Containerfile will set up local repositories from these directories
-
-3. **Build the image:**
+2. **Build the base image:**
    ```bash
    podman build -f Containerfile -t microshift-bootc:latest .
    ```
 
-   Or specify a different MicroShift version:
-   ```bash
-   podman build --build-arg MS_VERSION=4.20 -f Containerfile -t microshift-bootc:4.20 .
-   ```
-
-4. **Create bootable disk image:**
+3. **Create bootable ISO:**
    ```bash
    bootc install to-disk --image microshift-bootc:latest /dev/sdX
    ```
-   Replace `/dev/sdX` with your target disk.
 
-## Bootc Switch and Upgrade Demos
+4. **Boot and access MicroShift:**
+   ```bash
+   export KUBECONFIG=/var/lib/microshift/resources/kubeadmin/kubeconfig
+   kubectl get nodes
+   ```
 
-This repository includes `Containerfile.c10` for demonstrating bootc switch and upgrade capabilities with CentOS 10 as the base image. This showcases how easy it is to transition between different base images and versions:
+## Bootc Switch Demonstration
+
+This repository includes `Containerfile.c10` for demonstrating bootc switch and upgrade capabilities:
 
 ```bash
 # Build CentOS 10 variant
@@ -93,11 +170,7 @@ sudo bootc switch localhost/microshift-bootc:c10
 sudo bootc upgrade --apply
 ```
 
-This demonstrates the power of bootc for seamless OS updates and transitions in disconnected environments.
-
 ## How Image Embedding Works
-
-The build process embeds container images in two phases:
 
 ### Build Time (Containerfile)
 - `embed_image.sh` downloads images from registries and stores them in `/usr/lib/containers/storage/`
@@ -108,36 +181,6 @@ The build process embeds container images in two phases:
 - `microshift-embed.service` runs before MicroShift starts
 - `copy_embed.sh` imports embedded images into podman's container storage
 - MicroShift can then pull images locally without network access
-
-## Usage
-
-1. **Boot the system** from the created disk image
-2. **MicroShift starts automatically** with embedded images
-3. **Access the cluster:**
-   ```bash
-   export KUBECONFIG=/var/lib/microshift/resources/kubeadmin/kubeconfig
-   kubectl get nodes
-   kubectl get pods -A
-   ```
-
-4. **Deploy test applications:**
-   - Test manifests are pre-installed in `/etc/microshift/manifests.d/`
-   - Access the hello-world app at the configured route
-
-## Configuration
-
-### Networking
-- Firewall rules are pre-configured for MicroShift ports
-- Kindnet CNI is used for pod networking
-- Isolated network setup script available for testing
-
-### Storage
-- TopoLVM is configured with loopback LVM (20GB backing file)
-- Storage setup runs automatically on boot
-
-### Embedded Images
-- Modify `image-list.txt` to add/remove images to embed
-- Images include MicroShift components, OLM, TopoLVM, and test applications
 
 ## Scripts Overview
 
