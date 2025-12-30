@@ -1,0 +1,13 @@
+[Unit]
+Description=Import Embedded Images to Containers Storage
+Before=microshift.service
+ConditionPathExists=!/var/lib/containers/storage/overlay-images
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/mkdir -p /var/lib/containers/storage
+ExecStart=/usr/local/bin/copy_embed.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
