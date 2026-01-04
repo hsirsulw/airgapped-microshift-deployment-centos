@@ -1,22 +1,41 @@
 FROM quay.io/centos-bootc/centos-bootc:stream10
 
+# --------------------------------------------------
+# Global speed optimizations
+# --------------------------------------------------
+RUN echo "install_weak_deps=False" >> /etc/dnf/dnf.conf
+
 ARG ARCH=x86_64
 ENV MICROSHIFT_RPM_URL=https://github.com/microshift-io/microshift/releases/download/4.21.0_gbc8e20c07_4.21.0_okd_scos.ec.14/microshift-rpms-${ARCH}.tgz
 
-# 1. Setup External Repos for Dependencies
-RUN dnf install -y 'dnf-command(config-manager)' && \
-    printf "[openshift-4.x]\n\
-name=OpenShift 4.21\n\
+# --------------------------------------------------
+# Repositories (NO dnf config-manager)
+# --------------------------------------------------
+RUN printf "[openshift-mirror-beta]\n\
+name=OpenShift Mirror Beta Repository\n\
 baseurl=https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rpms/4.21-el9-beta/\n\
 enabled=1\n\
-gpgcheck=0\n" \
-    > /etc/yum.repos.d/openshift.repo
+gpgcheck=0\n\
+skip_if_unavailable=1\n" \
+> /etc/yum.repos.d/openshift.repo
 
 # --------------------------------------------------
-# Download MicroShift RPMs directly during build
+# Install ALL required tools in ONE go
+# --------------------------------------------------
+RUN dnf install -y \
+    curl \
+    tar \
+    createrepo_c \
+    jq \
+    skopeo \
+    firewalld \
+    policycoreutils \
+ && dnf clean all
+
+# --------------------------------------------------
+# Download MicroShift RPMs and build local repo
 # --------------------------------------------------
 RUN set -eux; \
-    dnf install -y curl tar createrepo_c; \
     mkdir -p /tmp/local-rpms; \
     curl -L --fail --retry 5 "${MICROSHIFT_RPM_URL}" -o /tmp/microshift-rpms.tgz; \
     tar -xzf /tmp/microshift-rpms.tgz -C /tmp/local-rpms; \
@@ -26,71 +45,77 @@ name=MicroShift Local\n\
 baseurl=file:///tmp/local-rpms\n\
 enabled=1\n\
 gpgcheck=0\n" > /etc/yum.repos.d/microshift-local.repo
-# 1. Create the directory first
-# 2. Download and extract CNI plugins
-# 3. Ensure the plugins are executable
-RUN mkdir -p /usr/libexec/cni && \
-    curl -L https://github.com/containernetworking/plugins/releases/download/v1.6.0/cni-plugins-linux-amd64-v1.6.0.tgz | \
-    tar -C /usr/libexec/cni -xz && \
-    chmod +x /usr/libexec/cni/*
 
-# 3. Install MicroShift Stack
+# --------------------------------------------------
+# Install MicroShift stack (single DNF transaction)
+# --------------------------------------------------
 RUN dnf install -y --nogpgcheck \
-    microshift microshift-kindnet microshift-networking \
-    microshift-topolvm microshift-olm microshift-selinux \
-    jq skopeo firewalld policycoreutils && \
-    dnf clean all && rm -rf /tmp/local-rpms /etc/yum.repos.d/microshift-local.repo
+    microshift \
+    microshift-kindnet \
+    microshift-networking \
+    microshift-topolvm \
+    microshift-olm \
+    microshift-selinux \
+ && dnf clean all \
+ && rm -rf /tmp/local-rpms /tmp/microshift-rpms.tgz \
+ && rm -f /etc/yum.repos.d/microshift-local.repo
 
-# 4. Copy Assets & Scripts
-RUN mkdir -p /etc/cni/net.d /etc/microshift/manifests.d/001-test-app /usr/local/bin /usr/libexec/cni /usr/libexec/kubernetes/kubelet-plugins/volume/exec /usr/lib/microshift/manifests.d/wordpress
+# --------------------------------------------------
+# Copy assets (grouped for cache efficiency)
+# --------------------------------------------------
+RUN mkdir -p /etc/cni/net.d \
+             /etc/microshift/manifests.d/001-test-app \
+             /usr/local/bin
 
-COPY assets/10-kindnet.conflist /etc/cni/net.d/10-kindnet.conflist
-# Copy CRI-O Kindnet configuration
-COPY assets/13-microshift-kindnet.conf /etc/crio/crio.conf.d/13-microshift-kindnet.conf
-COPY assets/99-offline.conf /etc/containers/registries.conf.d/99-offline.conf
+COPY assets/13-microshift-kindnet.conf /etc/crio/crio.conf.d/
+COPY assets/10-kindnet.conflist /etc/cni/net.d/
+COPY assets/99-offline.conf /etc/containers/registries.conf.d/
+
 COPY scripts/setup.sh /usr/local/bin/setup-storage.sh
-COPY ./scripts/embed_image.sh /usr/local/bin/embed_image.sh
-COPY ./scripts/copy_embed.sh /usr/local/bin/copy_embed.sh
-COPY manifests/test-app.yaml /etc/microshift/manifests.d/001-test-app/test-app.yaml
+COPY scripts/embed_image.sh /usr/local/bin/embed_image.sh
+COPY scripts/copy_embed.sh /usr/local/bin/copy_embed.sh
+
+COPY manifests/test-app.yaml /etc/microshift/manifests.d/001-test-app/
 COPY image-list.txt /tmp/image-list.txt
-# 4. Copy Assets & Scripts
+
 COPY assets/fix-network.sh /usr/bin/fix-network.sh
-COPY assets/fix-network.service /etc/systemd/system/fix-network.service
+COPY assets/fix-network.service /etc/systemd/system/
 
-# --- PERMISSIONS & SELINUX ---
-RUN chmod +x /usr/bin/fix-network.sh && \
-    chmod 644 /etc/systemd/system/fix-network.service && \
-    restorecon -v /usr/bin/fix-network.sh && \
-    restorecon -v /etc/systemd/system/fix-network.service
-
-# --- PERMISSIONS FIX START ---
-# 1. Set Execute permissions for all scripts
-RUN chmod +x /usr/local/bin/*.sh
+# --------------------------------------------------
+# Permissions + embedding (minimal restorecon)
+# --------------------------------------------------
+RUN chmod +x /usr/local/bin/*.sh /usr/bin/fix-network.sh && \
+    chmod 644 /etc/systemd/system/*.service || true
 
 RUN /usr/local/bin/embed_image.sh /tmp/image-list.txt
-# 2. Ensure systemd unit files are 644 (not executable)
-# Note: We create the services below, but if you COPY any, fix them here.
-RUN chmod 644 /etc/systemd/system/*.service || true
 
-# 3. SELinux Relabeling (Critical for systemd execution)
-# restorecon resets the labels to the system defaults for these paths
-RUN restorecon -R -v /usr/local/bin && \
-    restorecon -R -v /etc/systemd/system && \
-    restorecon -R -v /etc/microshift/manifests
-# --- PERMISSIONS FIX END ---
+RUN restorecon -v /usr/local/bin/* \
+               /usr/bin/fix-network.sh \
+               /etc/systemd/system/* \
+               /etc/microshift/manifests.d/001-test-app/*
 
-# 5. Networking & Firewall
-RUN firewall-offline-cmd --zone=public --add-port=22/tcp --add-port=80/tcp --add-port=443/tcp && \
-    firewall-offline-cmd --zone=public --add-port=6443/tcp --add-port=30000-32767/tcp && \
-    firewall-offline-cmd --zone=trusted --add-source=10.42.0.0/16 --add-source=169.254.169.1
+# --------------------------------------------------
+# Firewall + user + systemd units (combined)
+# --------------------------------------------------
+RUN firewall-offline-cmd --zone=public --add-port=22/tcp \
+ && firewall-offline-cmd --zone=public --add-port=80/tcp \
+ && firewall-offline-cmd --zone=public --add-port=443/tcp \
+ && firewall-offline-cmd --zone=public --add-port=6443/tcp \
+ && firewall-offline-cmd --zone=public --add-port=30000-32767/tcp \
+ && firewall-offline-cmd --zone=trusted --add-source=10.42.0.0/16 \
+ && firewall-offline-cmd --zone=trusted --add-source=169.254.169.1 \
+ && useradd -m -d /var/home/hrushabh -G wheel hrushabh \
+ && echo "hrushabh:redhat" | chpasswd
 
-# 6. User Config
-RUN useradd -m -d /var/home/hrushabh -G wheel hrushabh && echo "hrushabh:redhat" | chpasswd
+# --------------------------------------------------
+# Systemd services
+# --------------------------------------------------
+COPY scripts/microshift-embed.service /usr/lib/systemd/system/
 
-# 7. Systemd Services Creation
-COPY ./scripts/microshift-embed.service /usr/lib/systemd/system/microshift-embed.service
-
-RUN printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target" > /etc/systemd/system/microshift-storage-setup.service
+RUN printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n\
+[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n\
+[Install]\nWantedBy=multi-user.target\n" \
+> /etc/systemd/system/microshift-storage-setup.service
 
 RUN cat > /usr/lib/systemd/system/microshift-make-rshared.service <<'EOF'
 [Unit]
@@ -103,15 +128,16 @@ ExecStart=/usr/bin/mount --make-rshared /
 WantedBy=multi-user.target
 EOF
 
-# 8. Cleanup & Final Prep
-RUN rm -rf /usr/lib/microshift/manifests/microshift-olm
-RUN restorecon -R -v /usr/lib/systemd/system
+# --------------------------------------------------
+# Final cleanup + enable services
+# --------------------------------------------------
+RUN rm -rf /usr/lib/microshift/manifests/microshift-olm && \
+    systemctl enable \
+      firewalld \
+      microshift-make-rshared.service \
+      microshift-embed.service \
+      microshift-storage-setup.service \
+      fix-network.service \
+      microshift.service
 
-# 9. Enable Services
-RUN systemctl enable firewalld \
-    microshift-make-rshared.service \
-    microshift-embed.service \
-    microshift.service \
-    microshift-storage-setup.service \
-    fix-network.service \
-    microshift.service
+      
