@@ -1,6 +1,7 @@
 FROM quay.io/centos-bootc/centos-bootc:stream9
 
-
+ARG ARCH=x86_64
+ENV MICROSHIFT_RPM_URL=https://github.com/microshift-io/microshift/releases/download/4.21.0_gbc8e20c07_4.21.0_okd_scos.ec.14/microshift-rpms-${ARCH}.tgz
 
 # 1. Setup External Repos for Dependencies (Matching MS_VERSION)
 RUN dnf install -y 'dnf-command(config-manager)' && \
@@ -12,20 +13,27 @@ gpgcheck=0\n\
 skip_if_unavailable=0\n" \
     > /etc/yum.repos.d/openshift.repo
 
-# 2. Setup Local Versioned Repo
-COPY rpms /tmp/rpms
-
-RUN mv /tmp/rpms /tmp/local-rpms && \
-    dnf install -y createrepo_c && \
-    createrepo_c /tmp/local-rpms && \
-    printf "[local]\nname=local\nbaseurl=file:///tmp/local-rpms\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/local.repo
+# --------------------------------------------------
+# Download MicroShift RPMs directly during build
+# --------------------------------------------------
+RUN set -eux; \
+    dnf install -y curl tar createrepo_c; \
+    mkdir -p /tmp/local-rpms; \
+    curl -L --fail --retry 5 "${MICROSHIFT_RPM_URL}" -o /tmp/microshift-rpms.tgz; \
+    tar -xzf /tmp/microshift-rpms.tgz -C /tmp/local-rpms; \
+    createrepo_c /tmp/local-rpms; \
+    printf "[microshift-local]\n\
+name=MicroShift Local\n\
+baseurl=file:///tmp/local-rpms\n\
+enabled=1\n\
+gpgcheck=0\n" > /etc/yum.repos.d/microshift-local.repo
 
 # 3. Install MicroShift Stack
 RUN dnf install -y --nogpgcheck \
     microshift microshift-kindnet microshift-networking \
     microshift-topolvm microshift-olm microshift-selinux \
     jq skopeo firewalld policycoreutils && \
-    dnf clean all && rm -rf /tmp/local-rpms /etc/yum.repos.d/local.repo
+    dnf clean all && rm -rf /tmp/local-rpms /etc/yum.repos.d/microshift-local.repo
 
 # 4. Copy Assets & Scripts
 RUN mkdir -p /etc/cni/net.d /etc/microshift/manifests.d/001-test-app /usr/local/bin
