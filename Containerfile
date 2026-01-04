@@ -1,27 +1,21 @@
 FROM quay.io/centos-bootc/centos-bootc:stream9
 
-# Versioning Toggle (build-arg)
-ARG MS_VERSION=4.21
+
 
 # 1. Setup External Repos for Dependencies (Matching MS_VERSION)
 RUN dnf install -y 'dnf-command(config-manager)' && \
     printf "[openshift-mirror-beta]\n\
 name=OpenShift Mirror Beta Repository\n\
-baseurl=https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rpms/%s-el9-beta/\n\
+baseurl=https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rpms/4.21-el9-beta/\n\
 enabled=1\n\
 gpgcheck=0\n\
 skip_if_unavailable=0\n" \
-    $MS_VERSION > /etc/yum.repos.d/openshift.repo
+    > /etc/yum.repos.d/openshift.repo
 
 # 2. Setup Local Versioned Repo
 COPY rpms /tmp/rpms
-COPY microshift-rpms-4.20x86_64 /tmp/microshift-rpms-4.20x86_64
 
-RUN if [ "$MS_VERSION" = "4.20" ]; then \
-        mv /tmp/microshift-rpms-4.20x86_64 /tmp/local-rpms; \
-    else \
-        mv /tmp/rpms /tmp/local-rpms; \
-    fi && \
+RUN mv /tmp/rpms /tmp/local-rpms && \
     dnf install -y createrepo_c && \
     createrepo_c /tmp/local-rpms && \
     printf "[local]\nname=local\nbaseurl=file:///tmp/local-rpms\nenabled=1\ngpgcheck=0" > /etc/yum.repos.d/local.repo
