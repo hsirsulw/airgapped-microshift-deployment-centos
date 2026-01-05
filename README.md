@@ -133,7 +133,7 @@ sudo virt-install \
 ```bash
 # Check VM status
 sudo virsh list --all
-sudo virsh dominfo microshift-workshop-4.21
+sudo virsh domifaddr microshift-workshop-4.21
 ```
 
 ### Step 7: Connect to the MicroShift VM
