@@ -65,7 +65,8 @@ RUN dnf install -y --nogpgcheck \
 # --------------------------------------------------
 RUN mkdir -p /etc/cni/net.d \
              /etc/microshift/manifests.d/001-test-app \
-             /usr/local/bin
+             /usr/local/bin \
+             /usr/libexec/cni
 
 COPY assets/13-microshift-kindnet.conf /etc/crio/crio.conf.d/
 COPY assets/10-kindnet.conflist /etc/cni/net.d/
