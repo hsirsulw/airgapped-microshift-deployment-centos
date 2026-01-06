@@ -29,6 +29,7 @@ RUN dnf install -y \
     jq \
     skopeo \
     firewalld \
+    containernetworking-plugins \
     policycoreutils \
  && dnf clean all
 
@@ -113,21 +114,11 @@ RUN firewall-offline-cmd --zone=public --add-port=22/tcp \
 # --------------------------------------------------
 COPY scripts/microshift-embed.service /usr/lib/systemd/system/
 
-RUN printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n\
-[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n\
-[Install]\nWantedBy=multi-user.target\n" \
-> /etc/systemd/system/microshift-storage-setup.service
+RUN printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n" \
+    > /etc/systemd/system/microshift-storage-setup.service
 
-RUN cat > /usr/lib/systemd/system/microshift-make-rshared.service <<'EOF'
-[Unit]
-Description=Make root filesystem shared
-Before=microshift.service
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/mount --make-rshared /
-[Install]
-WantedBy=multi-user.target
-EOF
+RUN printf "[Unit]\nDescription=Make root filesystem shared\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/mount --make-rshared /\n\n[Install]\nWantedBy=multi-user.target\n" \
+    > /usr/lib/systemd/system/microshift-make-rshared.service
 
 # --------------------------------------------------
 # Final cleanup + enable services
@@ -140,5 +131,3 @@ RUN rm -rf /usr/lib/microshift/manifests/microshift-olm && \
       microshift-storage-setup.service \
       fix-network.service \
       microshift.service
-
-      
