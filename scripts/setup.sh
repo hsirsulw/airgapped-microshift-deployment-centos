@@ -20,12 +20,29 @@ else
 fi
 
 # 2. Setup Local DNS for the Demo Route
-# This maps the expected route to the actual primary IP of the VM
-PRIMARY_IP=$(hostname -I | awk '{print $1}')
+# Wait up to 30 seconds for an IP to be assigned
+MAX_RETRIES=30
+RETRY_COUNT=0
+PRIMARY_IP=""
+
+while [ -z "$PRIMARY_IP" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    # Try getting the IP, ensuring we grab the first non-loopback address
+    PRIMARY_IP=$(hostname -I | awk '{print $1}')
+    
+    if [ -z "$PRIMARY_IP" ]; then
+        echo "Waiting for network IP... ($RETRY_COUNT/$MAX_RETRIES)"
+        sleep 1
+        ((RETRY_COUNT++))
+    fi
+done
+
+if [ -z "$PRIMARY_IP" ]; then
+    echo "❌ Error: Could not detect Primary IP after $MAX_RETRIES seconds."
+    exit 1
+fi
+
 DOMAIN="hello-route-default.apps.example.com"
 
 # Remove any old entries for this domain and add the fresh one
 sed -i "/$DOMAIN/d" /etc/hosts
 echo "$PRIMARY_IP  $DOMAIN" >> /etc/hosts
-
-echo "Setup Complete. IP: $PRIMARY_IP"
