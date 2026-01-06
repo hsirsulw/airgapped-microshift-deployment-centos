@@ -3,6 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: hello-pvc
 spec:
+  storageClassName: topolvm-provisioner
   accessModes:
     - ReadWriteOnce
   resources:
