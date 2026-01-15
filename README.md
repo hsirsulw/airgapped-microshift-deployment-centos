@@ -68,7 +68,6 @@ cd airgapped-microshift-deployment-centos
 
 # Create directories for different builds
 mkdir 9centos  # For CentOS 9 builds
-mkdir 10centos # For CentOS 10 builds
 ```
 
 ### Step 2: Examine the Containerfile
