@@ -236,8 +236,6 @@ The Containerfile performs these critical steps:
 
 ### Bootc Switch Demonstration
 
-Please exit the virtual machine and come back onto your build machine.
-
 ```bash
 # Build CentOS 10 variant
 sudo podman build -f Containerfile.c10 -t microshift-bootc:c10
