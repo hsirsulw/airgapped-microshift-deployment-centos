@@ -113,6 +113,12 @@ This generates a QCOW2 disk image in `./9centos/qcow2/disk.qcow2` that can be bo
 
 ### Step 5: Create and Start Virtual Machine
 
+Give execute permissions to your home and code directory for the quemu user to enter your home directory:
+
+```bash
+chmod +x /home/redhat
+```
+
 ```bash
 # Create VM using virt-install
 sudo virt-install \
@@ -232,7 +238,7 @@ The Containerfile performs these critical steps:
 
 ```bash
 # Build CentOS 10 variant
-podman build -f Containerfile.c10 -t microshift-bootc:c10
+sudo podman build -f Containerfile.c10 -t microshift-bootc:c10
 
 # Switch running system
 sudo bootc switch localhost/microshift-bootc:c10
