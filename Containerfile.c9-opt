@@ -1,0 +1,96 @@
+FROM quay.io/centos-bootc/centos-bootc:stream9
+
+# --------------------------------------------------
+# Global speed & DNF optimizations
+# --------------------------------------------------
+# 1. Increase parallel downloads
+# 2. Disable weak dependencies
+# 3. Silence the subscription-manager plugin to save time
+RUN echo -e "max_parallel_downloads=10\ninstall_weak_deps=False" >> /etc/dnf/dnf.conf && \
+    sed -i 's/enabled=1/enabled=0/' /etc/yum/pluginconf.d/subscription-manager.conf
+
+ARG ARCH=x86_64
+ENV MICROSHIFT_RPM_URL=https://github.com/microshift-io/microshift/releases/download/4.21.0_gbc8e20c07_4.21.0_okd_scos.ec.14/microshift-rpms-${ARCH}.tgz
+
+# --------------------------------------------------
+# STEP 1: Install standard tools (Maximizes Caching)
+# --------------------------------------------------
+RUN dnf install -y curl tar jq skopeo firewalld policycoreutils && \
+    dnf clean all
+
+# --------------------------------------------------
+# STEP 2: Add External Repos & Install remaining tools
+# --------------------------------------------------
+RUN printf "[openshift-mirror-beta]\n\
+name=OpenShift Mirror Beta Repository\n\
+baseurl=https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rpms/4.21-el9-beta/\n\
+enabled=1\n\
+gpgcheck=0\n\
+skip_if_unavailable=1\n" > /etc/yum.repos.d/openshift.repo && \
+    dnf install -y createrepo_c containernetworking-plugins && \
+    dnf clean all
+
+# --------------------------------------------------
+# STEP 3: Download MicroShift & Build Local Repo
+# --------------------------------------------------
+RUN set -eux; \
+    mkdir -p /tmp/local-rpms; \
+    curl -L --fail --retry 5 --retry-delay 5 "${MICROSHIFT_RPM_URL}" -o /tmp/microshift-rpms.tgz; \
+    tar -xzf /tmp/microshift-rpms.tgz -C /tmp/local-rpms; \
+    createrepo_c /tmp/local-rpms; \
+    printf "[microshift-local]\nname=MicroShift Local\nbaseurl=file:///tmp/local-rpms\nenabled=1\ngpgcheck=0\n" > /etc/yum.repos.d/microshift-local.repo && \
+    dnf install -y --nogpgcheck \
+        microshift microshift-kindnet microshift-networking \
+        microshift-topolvm microshift-olm microshift-selinux && \
+    dnf clean all && \
+    rm -rf /tmp/local-rpms /tmp/microshift-rpms.tgz /etc/yum.repos.d/microshift-local.repo
+
+# --------------------------------------------------
+# STEP 4: Optimized File Copying (Consolidated)
+# --------------------------------------------------
+# We copy by directory and then move in ONE layer to reduce overhead
+COPY assets/ ./tmp_assets/
+COPY scripts/ ./tmp_scripts/
+COPY manifests/ ./tmp_manifests/
+COPY image-list.txt /tmp/image-list.txt
+
+RUN mkdir -p /etc/cni/net.d /etc/microshift/manifests.d/001-test-app /usr/local/bin /usr/libexec/cni && \
+    mv tmp_assets/13-microshift-kindnet.conf /etc/crio/crio.conf.d/ && \
+    mv tmp_assets/10-kindnet.conflist /etc/cni/net.d/ && \
+    mv tmp_assets/99-offline.conf /etc/containers/registries.conf.d/ && \
+    mv tmp_assets/fix-network.sh /usr/bin/fix-network.sh && \
+    mv tmp_assets/fix-network.service /etc/systemd/system/ && \
+    mv tmp_scripts/setup.sh /usr/local/bin/setup-storage.sh && \
+    mv tmp_scripts/embed_image.sh /usr/local/bin/embed_image.sh && \
+    mv tmp_scripts/copy_embed.sh /usr/local/bin/copy_embed.sh && \
+    mv tmp_scripts/microshift-embed.service /usr/lib/systemd/system/ && \
+    mv tmp_manifests/test-app.yaml /etc/microshift/manifests.d/001-test-app/ && \
+    rm -rf ./tmp_assets ./tmp_scripts ./tmp_manifests
+
+# --------------------------------------------------
+# STEP 5: Permissions, Embedding, and Configuration
+# --------------------------------------------------
+RUN chmod +x /usr/local/bin/*.sh /usr/bin/fix-network.sh && \
+    chmod 644 /etc/systemd/system/*.service /usr/lib/systemd/system/*.service && \
+    /usr/local/bin/embed_image.sh /tmp/image-list.txt && \
+    restorecon -Rv /usr/local/bin/ /usr/bin/fix-network.sh /etc/systemd/system/ /etc/microshift/manifests.d/
+
+# --------------------------------------------------
+# STEP 6: Final System Setup (Combined)
+# --------------------------------------------------
+RUN firewall-offline-cmd --zone=public --add-port=22/tcp --add-port=80/tcp --add-port=443/tcp --add-port=6443/tcp --add-port=30000-32767/tcp && \
+    firewall-offline-cmd --zone=trusted --add-source=10.42.0.0/16 --add-source=169.254.169.1 && \
+    useradd -m -d /var/home/hrushabh -G wheel hrushabh && \
+    echo "hrushabh:redhat" | chpasswd && \
+    printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/microshift-storage-setup.service && \
+    printf "[Unit]\nDescription=Make root filesystem shared\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/mount --make-rshared /\n\n[Install]\nWantedBy=multi-user.target\n" > /usr/lib/systemd/system/microshift-make-rshared.service
+
+# Final cleanup and service activation
+RUN rm -rf /usr/lib/microshift/manifests/microshift-olm && \
+    systemctl enable \
+      firewalld \
+      microshift-make-rshared.service \
+      microshift-embed.service \
+      microshift-storage-setup.service \
+      fix-network.service \
+      microshift.service
