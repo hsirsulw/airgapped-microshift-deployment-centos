@@ -116,7 +116,7 @@ This generates a QCOW2 disk image in `./9centos/qcow2/disk.qcow2` that can be bo
 Give execute permissions to your home and code directory for the quemu user to enter your home directory:
 
 ```bash
-chmod +x /home/redhat
+chmod +x /home/
 ```
 
 ```bash
