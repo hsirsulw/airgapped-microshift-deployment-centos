@@ -54,6 +54,7 @@ COPY assets/ ./tmp_assets/
 COPY scripts/ ./tmp_scripts/
 COPY manifests/ ./tmp_manifests/
 COPY image-list.txt /tmp/image-list.txt
+COPY wordpress /usr/lib/microshift/manifests.d/wordpress
 
 RUN mkdir -p /etc/cni/net.d /etc/microshift/manifests.d/001-test-app /usr/local/bin /usr/libexec/cni && \
     mv tmp_assets/13-microshift-kindnet.conf /etc/crio/crio.conf.d/ && \
