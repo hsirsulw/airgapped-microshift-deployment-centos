@@ -65,7 +65,9 @@ When the system boots:
 # Clone the repository
 git clone https://github.com/hsirsulw/airgapped-microshift-deployment-centos.git
 cd airgapped-microshift-deployment-centos
+```
 
+```bash
 # Create directories for different builds
 mkdir 9centos  # For CentOS 9 builds
 ```
@@ -116,7 +118,8 @@ This generates a QCOW2 disk image in `./9centos/qcow2/disk.qcow2` that can be bo
 Give execute permissions to your home and code directory for the quemu user to enter your home directory:
 
 ```bash
-chmod +x /home/
+chmod o+x /home/
+sudo qemu-img resize ./9centos/qcow2/disk.qcow2 +20G
 ```
 
 ```bash
@@ -145,10 +148,19 @@ sudo virsh domifaddr microshift-workshop-4.21
 
 ```bash
 # SSH into the running VM (IP will vary)
-ssh hrushabh@192.168.100.151
+ssh hrushabh@<vm-ip>
 ```
 
-## Step-by-Step: Using MicroShift in the VM
+## Verify Microshift Services
+```bash
+# Check that MicroShift started successfully
+oc get nodes
+
+# Verify systemd services
+sudo systemctl status microshift-make-rshared.service
+sudo systemctl status microshift-embed.service
+sudo systemctl status microshift
+```
 
 ### Configure Kubernetes Access
 
@@ -164,11 +176,7 @@ chmod go-r ~/.kube/config
 ```bash
 # Check that MicroShift started successfully
 oc get nodes
-
-# Verify systemd services
-sudo systemctl status microshift-make-rshared.service
-sudo systemctl status microshift-embed.service
-sudo systemctl status microshift
+oc get pods -A
 ```
 
 ### Deploy Test Application
@@ -186,10 +194,6 @@ oc get pods
 ```bash
 # Check routes
 oc get route
-
-# Add hostname to /etc/hosts if needed
-sudo vi /etc/hosts
-# Add: 127.0.0.1 hello-route-default.apps.example.com
 
 # Test the application
 curl hello-route-default.apps.example.com

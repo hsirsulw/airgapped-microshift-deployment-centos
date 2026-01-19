@@ -67,7 +67,7 @@ cat > "${NETWORK_XML}" <<EOF
 <network>
   <name>${NETWORK_NAME}</name>
   <uuid>$(uuidgen)</uuid>
-  <forward mode='none'/>
+  <forward mode='route'/>
   <bridge name='${BRIDGE_NAME}' stp='on' delay='0'/>
   <ip address='${NETWORK_IP}' netmask='${NETWORK_NETMASK}'>
     <dhcp>
