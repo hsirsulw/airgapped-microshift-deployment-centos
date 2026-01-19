@@ -4,7 +4,6 @@ FROM quay.io/centos-bootc/centos-bootc:stream10
 # Global speed optimizations
 # --------------------------------------------------
 RUN echo "install_weak_deps=False" >> /etc/dnf/dnf.conf
-
 ARG ARCH=x86_64
 ENV MICROSHIFT_RPM_URL=https://github.com/microshift-io/microshift/releases/download/4.21.0_gbc8e20c07_4.21.0_okd_scos.ec.14/microshift-rpms-${ARCH}.tgz
 
@@ -31,6 +30,16 @@ RUN dnf install -y \
     firewalld \
     policycoreutils \
  && dnf clean all
+
+# --------------------------------------------------
+# Manually install CNI plugins (Required for CentOS 10)
+# --------------------------------------------------
+ARG CNI_PLUGINS_VERSION=v1.6.2
+RUN set -eux; \
+    mkdir -p /usr/libexec/cni; \
+    curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz" -o /tmp/cni-plugins.tgz; \
+    tar -xzf /tmp/cni-plugins.tgz -C /usr/libexec/cni; \
+    rm -rf /tmp/cni-plugins.tgz
 
 # --------------------------------------------------
 # Download MicroShift RPMs and build local repo
@@ -61,7 +70,7 @@ RUN dnf install -y --nogpgcheck \
  && rm -f /etc/yum.repos.d/microshift-local.repo
 
 # --------------------------------------------------
-# Copy assets (grouped for cache efficiency)
+# Copy assets
 # --------------------------------------------------
 RUN mkdir -p /etc/cni/net.d \
              /etc/microshift/manifests.d/001-test-app \
@@ -89,13 +98,14 @@ RUN chmod +x /usr/local/bin/*.sh /usr/bin/fix-network.sh && \
 
 RUN /usr/local/bin/embed_image.sh /tmp/image-list.txt
 
-RUN restorecon -v /usr/local/bin/* \
-               /usr/bin/fix-network.sh \
-               /etc/systemd/system/* \
-               /etc/microshift/manifests.d/001-test-app/*
+RUN restorecon -R -v /usr/local/bin/ \
+                   /usr/bin/fix-network.sh \
+                   /etc/systemd/system/ \
+                   /etc/microshift/manifests.d/001-test-app/ \
+                   /usr/libexec/cni
 
 # --------------------------------------------------
-# Firewall + user + systemd units (combined)
+# Firewall + user
 # --------------------------------------------------
 RUN firewall-offline-cmd --zone=public --add-port=22/tcp \
  && firewall-offline-cmd --zone=public --add-port=80/tcp \
@@ -139,5 +149,3 @@ RUN rm -rf /usr/lib/microshift/manifests/microshift-olm && \
       microshift-storage-setup.service \
       fix-network.service \
       microshift.service
-
-      
