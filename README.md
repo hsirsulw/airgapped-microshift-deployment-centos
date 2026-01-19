@@ -59,6 +59,8 @@ When the system boots:
 
 ## Step-by-Step: Building and Deploying
 
+This hands-on lab guide walks you through building and deploying a complete MicroShift cluster in a bootc image.
+
 ### Step 1: Prepare Your Build Environment
 
 ```bash
@@ -147,57 +149,88 @@ sudo virsh domifaddr microshift-workshop-4.21
 ### Step 7: Connect to the MicroShift VM
 
 ```bash
-# SSH into the running VM (IP will vary)
+# SSH into the running VM (replace <vm-ip> with actual IP from Step 6)
 ssh centos@<vm-ip>
 ```
 
-## Verify Microshift Services
+### Step 8: Verify MicroShift Services
+
+Once connected to the VM, verify that all services started correctly:
+
 ```bash
 # Check that MicroShift started successfully
 oc get nodes
 
-# Verify systemd services
+# Verify systemd services are running
 sudo systemctl status microshift-make-rshared.service
 sudo systemctl status microshift-embed.service
 sudo systemctl status microshift
 ```
 
-### Configure Kubernetes Access
+**Expected output:**
+- `oc get nodes` should show the node in Ready state
+- All three systemd services should show `active (exited)` or `active (running)`
+
+### Step 9: Configure Kubernetes Access
+
+Set up the kubeconfig file to access your MicroShift cluster:
 
 ```bash
-# Set up kubeconfig
+# Create .kube directory
 mkdir -p ~/.kube
+
+# Extract the kubeconfig from MicroShift
 sudo cat /var/lib/microshift/resources/kubeadmin/kubeconfig > ~/.kube/config
+
+# Restrict permissions to user only
 chmod go-r ~/.kube/config
 ```
 
-### Verify MicroShift Services
+### Step 10: Verify Cluster Status
+
+Confirm that your MicroShift cluster is fully operational:
 
 ```bash
-# Check that MicroShift started successfully
+# Check nodes
 oc get nodes
+
+# Check all pods in all namespaces
 oc get pods -A
 ```
 
-### Deploy Test Application
+**Expected output:**
+- You should see the node in `Ready` state
+- Multiple pods should be in `Running` state across various namespaces
+
+### Step 11: Deploy Test Application
+
+Deploy a pre-configured test application:
 
 ```bash
-# Apply the pre-installed test app
+# Apply the pre-installed test app manifest
 oc apply -f /etc/microshift/manifests.d/001-test-app/test-app.yaml
 
-# Check pod status
+# Verify the pod is running
 oc get pods -A
+oc get pods -n default
 ```
 
-### Access the Application
+### Step 12: Access the Application
+
+Test the deployed application:
 
 ```bash
-# Check routes
+# Check available routes
 oc get route
 
-# Test the application
+# Test the application endpoint
 curl hello-route-default.apps.example.com
 ```
+
+**Success indicator:**
+You should see an HTTP response from the test application.
+
+---
 
 ## Understanding the Key Components
 
@@ -234,65 +267,229 @@ The Containerfile performs these critical steps:
 
 ### Containerfile Variants
 
-- `Containerfile`: Default CentOS 9 + MicroShift 4.21
+- `Containerfile`: Default CentOS 9 + MicroShift 4.21 (base image)
 - `Containerfile.c10`: CentOS 10 base (for bootc switch demos)
 
-### Bootc Switch Demonstration
+---
 
-### Building the Bootc Image Based on CentOs Stream10
+## Advanced: Bootc Image Switching (CentOS 9 to CentOS 10)
+
+This section demonstrates how to upgrade a running MicroShift system from CentOS 9 to CentOS 10 using bootc's atomic update capability. This shows the power of bootc for managing OS updates in production.
+
+### Building the New Bootc Image (CentOS 10)
+
+**On your build machine**, create the CentOS 10 variant:
 
 ```bash
-# Build CentOS 10 variant
+# Build CentOS 10 variant with MicroShift
 sudo podman build -f Containerfile.c10 -t microshift-bootc:c10
 ```
-### Push the microshift-bootc:c10 image to local registry
-```bash
-sudo podman tag localhost/microshift-bootc:c10 192.168.122.200:5000/microshift-bootc:<add-random-tag>
-```
-```bash
-sudo podman push 192.168.122.200:5000/microshift-bootc:<use-same-tag>
-```
+
+This creates a new container image based on CentOS Stream 10 with the same MicroShift configuration.
+
+---
+
+## Option 1: Direct Registry-Based Switching (Network Available)
+
+Use this option if your build machine and MicroShift VM are on the same network with registry access.
+
+### Step 1a: Push Image to Local Registry
+
+**On your build machine**, push the newly built image to your local registry:
 
 ```bash
-# Switch running system
-sudo bootc switch 192.168.122.200:5000/microshift-bootc:<use-same-tag>
-```
-```bash
-# Check current status
-sudo bootc stauts
+# Tag the image with registry destination
+sudo podman tag localhost/microshift-bootc:c10 192.168.122.200:5000/microshift-bootc:c10
+
+# Push to registry
+sudo podman push 192.168.122.200:5000/microshift-bootc:c10
 ```
 
-```bash
-# Reboot to apply Changes
-sudo reboot
-```
+**Expected output:**
+- Successfully pushed image to registry
+- Image is now available for pulling from registry
 
-# Re-login the Bootc VM
-```bash
-ssh centos@<vm-ip>
-```
-# Verify systemd services
+### Step 2a: Switch the Running System
+
+**Inside the MicroShift VM**, execute the bootc switch command:
 
 ```bash
-# Check OS Version
-cat /etc/os-release
+# Switch to the new CentOS 10 image from registry
+sudo bootc switch 192.168.122.200:5000/microshift-bootc:c10
 ```
+
+**What happens:**
+- bootc fetches the new image from the registry
+- Stages it for the next boot
+- Does NOT reboot automatically
+
+### Step 3a: Verify and Reboot
+
 ```bash
-# Check Bootc Current Version
+# Check the current bootc status
 sudo bootc status
 ```
 
+**Expected output:**
+- Current image: `microshift-bootc:c10`
+- Status shows staged/pending changes
+
+Reboot to apply the changes:
+
 ```bash
+# Reboot to activate the new system
+sudo reboot
+```
+
+The system will boot with CentOS 10 and MicroShift running from the new image.
+
+### Step 4a: Reconnect and Verify
+
+After the reboot completes (wait ~2-3 minutes):
+
+```bash
+# Reconnect to the VM
+ssh centos@<vm-ip>
+```
+
+Verify the upgrade was successful:
+
+```bash
+# Check the OS version
+cat /etc/os-release
+# Should show CentOS Stream 10
+
+# Check bootc status
+sudo bootc status
+# Should show microshift-bootc:c10 as active
+
+# Verify MicroShift services
 sudo systemctl status microshift-make-rshared.service
 sudo systemctl status microshift-embed.service
 sudo systemctl status microshift
-```
 
-```bash
-# Check that MicroShift started successfully
+# Verify cluster is still operational
 oc get nodes
 oc get pods -A
 ```
+
+---
+
+## Option 2: Offline Image Transfer Using podman save/load
+
+Use this option for air-gapped environments or when direct registry access is not available.
+
+### Step 1b: Export Image as Tar Archive
+
+**On your build machine**, save the image to a tar file:
+
+```bash
+# Save the image to a tar archive
+sudo podman save -o centos-10-microshift.tar localhost/microshift-bootc:c10
+
+# Verify the tar file was created
+ls -lh centos-10-microshift.tar
+```
+
+**Expected output:**
+- Large tar file created (typically 1-5GB depending on embedded images)
+- File is ready for transfer
+
+### Step 2b: Transfer Image to VM
+
+**From your build machine**, copy the tar file to the VM:
+
+```bash
+# SCP the tar file to VM's /var/tmp directory
+scp centos-10-microshift.tar centos@<vm-ip>:/var/tmp/
+```
+
+**Expected output:**
+- File transfer progress shown
+- Transfer completes successfully
+
+### Step 3b: Load Image in VM
+
+**Inside the MicroShift VM**, load the image into local storage:
+
+```bash
+# SSH into the VM
+ssh centos@<vm-ip>
+
+# Load the image from tar
+sudo podman load -i /var/tmp/centos-10-microshift.tar
+```
+
+**Expected output:**
+- Image is loaded into podman's storage
+- Image is now available locally without network
+
+### Step 4b: Switch Using Local Image
+
+**Inside the VM**, perform the bootc switch using the local image:
+
+```bash
+# Switch to local image using containers-storage transport
+sudo bootc switch --transport containers-storage localhost/microshift-bootc:c10
+```
+
+**What happens:**
+- bootc fetches the image from local storage (not network)
+- Stages the image for next boot
+- Does NOT reboot automatically
+
+### Step 5b: Verify and Reboot
+
+```bash
+# Check bootc status before reboot
+sudo bootc status
+```
+
+Reboot to apply the changes:
+
+```bash
+# Reboot to activate the new system
+sudo reboot
+```
+
+### Step 6b: Reconnect and Verify
+
+After reboot completes:
+
+```bash
+# Reconnect to the VM
+ssh centos@<vm-ip>
+
+# Verify OS version changed to CentOS 10
+cat /etc/os-release
+
+# Verify bootc shows new image as active
+sudo bootc status
+
+# Verify all MicroShift services are running
+sudo systemctl status microshift-make-rshared.service
+sudo systemctl status microshift-embed.service
+sudo systemctl status microshift
+
+# Verify cluster is operational
+oc get nodes
+oc get pods -A
+```
+
+---
+
+## Comparison: Option 1 vs Option 2
+
+| Aspect | Option 1 (Registry) | Option 2 (Save/Load) |
+|--------|---------------------|----------------------|
+| **Requires Network** | Yes (between VM and registry) | No |
+| **Transfer Method** | Direct pull from registry | Manual copy via tar |
+| **Speed** | Fast (if good network) | Slower (file transfer) |
+| **Best For** | Connected environments | Air-gapped networks |
+| **Complexity** | Lower | Higher |
+| **Use Case** | Production deployments | Offline/disconnected labs |
+
+---
 
 ## Troubleshooting
 
