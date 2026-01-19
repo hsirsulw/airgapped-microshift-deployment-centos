@@ -28,7 +28,7 @@ spec:
       - name: init-www
         image: quay.io/redhattraining/hello-world-nginx:v1.0
         imagePullPolicy: IfNotPresent
-        command: ['sh', '-c', 'echo "Hello from MicroShift LVM Storage" > /usr/share/nginx/html/index.html']
+        command: ['sh', '-c', 'echo "Hello, Welcome To DevConf.IN" > /usr/share/nginx/html/index.html']
         volumeMounts:
         - name: storage
           mountPath: /usr/share/nginx/html
