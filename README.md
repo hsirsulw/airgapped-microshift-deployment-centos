@@ -43,10 +43,10 @@ When the system boots:
 ```
 .
 ├── Containerfile*          # Main containerfile for building bootc image
-├── Containerfile.4.20      # Specific to MicroShift 4.20
 ├── Containerfile.bcp       # Base containerfile variant
 ├── Containerfile.c10       # For CentOS 10 base image (bootc switch demos)
-├── image-list.txt          # List of container images to embed
+├── image-list.txt          # List of container images to embed CentOs9
+├── image-centos10.txt          # List of container images to embed for CentOs 10
 ├── local-registry.sh       # Script to mirror images to local registry
 ├── setup-isolate-net.sh    # Script for isolated network setup
 ├── assets/                 # Network and configuration files
@@ -119,7 +119,7 @@ Give execute permissions to your home and code directory for the quemu user to e
 
 ```bash
 chmod o+x /home/
-sudo qemu-img resize ./9centos/qcow2/disk.qcow2 +20G
+sudo qemu-img resize ./9centos/qcow2/disk.qcow2 +30G
 ```
 
 ```bash
@@ -148,7 +148,7 @@ sudo virsh domifaddr microshift-workshop-4.21
 
 ```bash
 # SSH into the running VM (IP will vary)
-ssh hrushabh@<vm-ip>
+ssh centos@<vm-ip>
 ```
 
 ## Verify Microshift Services
@@ -186,7 +186,7 @@ oc get pods -A
 oc apply -f /etc/microshift/manifests.d/001-test-app/test-app.yaml
 
 # Check pod status
-oc get pods
+oc get pods -A
 ```
 
 ### Access the Application
@@ -235,18 +235,63 @@ The Containerfile performs these critical steps:
 ### Containerfile Variants
 
 - `Containerfile`: Default CentOS 9 + MicroShift 4.21
-- `Containerfile.4.20`: CentOS 9 + MicroShift 4.20
 - `Containerfile.c10`: CentOS 10 base (for bootc switch demos)
 
 ### Bootc Switch Demonstration
 
+### Building the Bootc Image Based on CentOs Stream10
+
 ```bash
 # Build CentOS 10 variant
 sudo podman build -f Containerfile.c10 -t microshift-bootc:c10
+```
+### Push the microshift-bootc:c10 image to local registry
+```bash
+sudo podman tag localhost/microshift-bootc:c10 192.168.122.200:5000/microshift-bootc:<add-random-tag>
+```
+```bash
+sudo podman push 192.168.122.200:5000/microshift-bootc:<use-same-tag>
+```
 
+```bash
 # Switch running system
-sudo bootc switch localhost/microshift-bootc:c10
-sudo bootc upgrade --apply
+sudo bootc switch 192.168.122.200:5000/microshift-bootc:<use-same-tag>
+```
+```bash
+# Check current status
+sudo bootc stauts
+```
+
+```bash
+# Reboot to apply Changes
+sudo reboot
+```
+
+# Re-login the Bootc VM
+```bash
+ssh centos@<vm-ip>
+```
+# Verify systemd services
+
+```bash
+# Check OS Version
+cat /etc/os-release
+```
+```bash
+# Check Bootc Current Version
+sudo bootc status
+```
+
+```bash
+sudo systemctl status microshift-make-rshared.service
+sudo systemctl status microshift-embed.service
+sudo systemctl status microshift
+```
+
+```bash
+# Check that MicroShift started successfully
+oc get nodes
+oc get pods -A
 ```
 
 ## Troubleshooting
