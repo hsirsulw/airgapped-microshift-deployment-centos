@@ -94,7 +94,8 @@ RUN /usr/local/bin/embed_image.sh /tmp/image-list.txt
 RUN restorecon -v /usr/local/bin/* \
                /usr/bin/fix-network.sh \
                /etc/systemd/system/* \
-               /etc/microshift/manifests.d/001-test-app/*
+               /etc/microshift/manifests.d/001-test-app/* \
+               /usr/libexec/cni
 
 # --------------------------------------------------
 # Firewall + user + systemd units (combined)
