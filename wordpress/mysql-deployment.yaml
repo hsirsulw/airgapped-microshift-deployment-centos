@@ -21,11 +21,12 @@ metadata:
   labels:
     app: wordpress
 spec:
+  storageClassName: topolvm-provisioner
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
+      storage: 2Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
