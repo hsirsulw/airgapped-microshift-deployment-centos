@@ -372,11 +372,114 @@ This creates a new container image based on CentOS Stream 10 with the same Micro
 
 ---
 
-## Option 1: Direct Registry-Based Switching (Network Available)
+## Option 1: Offline Image Transfer Using podman save/load
+
+Use this option for air-gapped environments or when direct registry access is not available.
+
+### Step 1a: Export Image as Tar Archive
+
+**On your build machine**, save the image to a tar file:
+
+```bash
+# Save the image to a tar archive
+sudo podman save -o centos-10-microshift.tar localhost/microshift-offline:c10
+
+# Verify the tar file was created
+ls -lh centos-10-microshift.tar
+```
+
+**Expected output:**
+- Large tar file created (typically 1-5GB depending on embedded images)
+- File is ready for transfer
+
+### Step 2a: Transfer Image to VM
+
+**From your build machine**, copy the tar file to the VM:
+
+```bash
+# SCP the tar file to VM's /var/tmp directory
+scp centos-10-microshift.tar centos@<vm-ip>:/var/tmp/
+```
+
+**Expected output:**
+- File transfer progress shown
+- Transfer completes successfully
+
+### Step 3a: Load Image in VM
+
+**Inside the MicroShift VM**, load the image into local storage:
+
+```bash
+# SSH into the VM
+ssh centos@<vm-ip>
+
+# Load the image from tar
+sudo podman load -i /var/tmp/centos-10-microshift.tar
+```
+
+**Expected output:**
+- Image is loaded into podman's storage
+- Image is now available locally without network
+
+### Step 4a: Switch Using Local Image
+
+**Inside the VM**, perform the bootc switch using the local image:
+
+```bash
+# Switch to local image using containers-storage transport
+sudo bootc switch --transport containers-storage localhost/microshift-offline:c10
+```
+
+**What happens:**
+- bootc fetches the image from local storage (not network)
+- Stages the image for next boot
+- Does NOT reboot automatically
+
+### Step 5a: Verify and Reboot
+
+```bash
+# Check bootc status before reboot
+sudo bootc status
+```
+
+Reboot to apply the changes:
+
+```bash
+# Reboot to activate the new system
+sudo reboot
+```
+
+### Step 6a: Reconnect and Verify
+
+After reboot completes:
+
+```bash
+# Reconnect to the VM
+ssh centos@<vm-ip>
+
+# Verify OS version changed to CentOS 10
+cat /etc/os-release
+
+# Verify bootc shows new image as active
+sudo bootc status
+
+# Verify all MicroShift services are running
+sudo systemctl status microshift-make-rshared.service
+sudo systemctl status microshift-embed.service
+sudo systemctl status microshift
+
+# Verify cluster is operational
+oc get nodes
+oc get pods -A
+```
+
+---
+
+## Option 2: Direct Registry-Based Switching (Network Available)
 
 Use this option if your build machine and MicroShift VM are on the same network with registry access.
 
-### Step 1a: Push Image to Local Registry
+### Step 1b: Push Image to Local Registry
 
 **On your build machine**, push the newly built image to your local registry:
 
@@ -392,7 +495,7 @@ sudo podman push <local-registry:port>/microshift-offline:c10
 - Successfully pushed image to registry
 - Image is now available for pulling from registry
 
-### Step 2a: Switch the Running System
+### Step 2b: Switch the Running System
 
 **Inside the MicroShift VM**, execute the bootc switch command:
 
@@ -406,7 +509,7 @@ sudo bootc switch <local-registry:port>/microshift-offline:c10
 - Stages it for the next boot
 - Does NOT reboot automatically
 
-### Step 3a: Verify and Reboot
+### Step 3b: Verify and Reboot
 
 ```bash
 # Check the current bootc status
@@ -426,7 +529,7 @@ sudo reboot
 
 The system will boot with CentOS 10 and MicroShift running from the new image.
 
-### Step 4a: Reconnect and Verify
+### Step 4b: Reconnect and Verify
 
 After the reboot completes (wait ~2-3 minutes):
 
@@ -460,119 +563,16 @@ oc get pods -A
 
 ---
 
-## Option 2: Offline Image Transfer Using podman save/load
-
-Use this option for air-gapped environments or when direct registry access is not available.
-
-### Step 1b: Export Image as Tar Archive
-
-**On your build machine**, save the image to a tar file:
-
-```bash
-# Save the image to a tar archive
-sudo podman save -o centos-10-microshift.tar localhost/microshift-offline:c10
-
-# Verify the tar file was created
-ls -lh centos-10-microshift.tar
-```
-
-**Expected output:**
-- Large tar file created (typically 1-5GB depending on embedded images)
-- File is ready for transfer
-
-### Step 2b: Transfer Image to VM
-
-**From your build machine**, copy the tar file to the VM:
-
-```bash
-# SCP the tar file to VM's /var/tmp directory
-scp centos-10-microshift.tar centos@<vm-ip>:/var/tmp/
-```
-
-**Expected output:**
-- File transfer progress shown
-- Transfer completes successfully
-
-### Step 3b: Load Image in VM
-
-**Inside the MicroShift VM**, load the image into local storage:
-
-```bash
-# SSH into the VM
-ssh centos@<vm-ip>
-
-# Load the image from tar
-sudo podman load -i /var/tmp/centos-10-microshift.tar
-```
-
-**Expected output:**
-- Image is loaded into podman's storage
-- Image is now available locally without network
-
-### Step 4b: Switch Using Local Image
-
-**Inside the VM**, perform the bootc switch using the local image:
-
-```bash
-# Switch to local image using containers-storage transport
-sudo bootc switch --transport containers-storage localhost/microshift-offline:c10
-```
-
-**What happens:**
-- bootc fetches the image from local storage (not network)
-- Stages the image for next boot
-- Does NOT reboot automatically
-
-### Step 5b: Verify and Reboot
-
-```bash
-# Check bootc status before reboot
-sudo bootc status
-```
-
-Reboot to apply the changes:
-
-```bash
-# Reboot to activate the new system
-sudo reboot
-```
-
-### Step 6b: Reconnect and Verify
-
-After reboot completes:
-
-```bash
-# Reconnect to the VM
-ssh centos@<vm-ip>
-
-# Verify OS version changed to CentOS 10
-cat /etc/os-release
-
-# Verify bootc shows new image as active
-sudo bootc status
-
-# Verify all MicroShift services are running
-sudo systemctl status microshift-make-rshared.service
-sudo systemctl status microshift-embed.service
-sudo systemctl status microshift
-
-# Verify cluster is operational
-oc get nodes
-oc get pods -A
-```
-
----
-
 ## Comparison: Option 1 vs Option 2
 
-| Aspect | Option 1 (Registry) | Option 2 (Save/Load) |
+| Aspect | Option 1 (Save/Load) | Option 2 (Registry) |
 |--------|---------------------|----------------------|
-| **Requires Network** | Yes (between VM and registry) | No |
-| **Transfer Method** | Direct pull from registry | Manual copy via tar |
-| **Speed** | Fast (if good network) | Slower (file transfer) |
-| **Best For** | Connected environments | Air-gapped networks |
-| **Complexity** | Lower | Higher |
-| **Use Case** | Production deployments | Offline/disconnected labs |
+| **Requires Network** | No | Yes (between VM and registry) |
+| **Transfer Method** | Manual copy via tar | Direct pull from registry |
+| **Speed** | Slower (file transfer) | Fast (if good network) |
+| **Best For** | Air-gapped networks | Connected environments |
+| **Complexity** | Higher | Lower |
+| **Use Case** | Offline/disconnected labs | Production deployments |
 
 ---
 
