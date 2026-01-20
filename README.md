@@ -42,8 +42,7 @@ When the system boots:
 
 ```
 .
-├── Containerfile*          # Main containerfile for building bootc image
-├── Containerfile.bcp       # Base containerfile variant
+├── Containerfile*          # Main containerfile for building bootc image with Centos9 base image
 ├── Containerfile.c10       # For CentOS 10 base image (bootc switch demos)
 ├── image-list.txt          # List of container images to embed CentOs9
 ├── image-centos10.txt          # List of container images to embed for CentOs 10
@@ -51,8 +50,6 @@ When the system boots:
 ├── setup-isolate-net.sh    # Script for isolated network setup
 ├── assets/                 # Network and configuration files
 ├── manifests/              # Kubernetes manifests for test apps
-├── microshift-rpms-4.20x86_64/  # MicroShift RPM packages
-├── rpms/                   # Additional RPM packages
 ├── scripts/                # Build and runtime scripts
 └── output/                 # Build output directory
 ```
@@ -71,7 +68,7 @@ cd airgapped-microshift-deployment-centos
 
 ```bash
 # Create directories for different builds
-mkdir 9centos  # For CentOS 9 builds
+mkdir output  # For CentOS 9 builds
 ```
 
 ### Step 2: Examine the Containerfile
@@ -107,13 +104,13 @@ This creates a container image containing:
 ```bash
 # Use bootc-image-builder to create a bootable disk image
 sudo podman run --rm -it --privileged \
-  -v $(pwd)/9centos:/output \
+  -v $(pwd)/output:/output \
   -v /var/lib/containers/storage:/var/lib/containers/storage \
   quay.io/centos-bootc/bootc-image-builder:latest \
   --type qcow2 localhost/microshift-bootc9:4.21
 ```
 
-This generates a QCOW2 disk image in `./9centos/qcow2/disk.qcow2` that can be booted directly.
+This generates a QCOW2 disk image in `./output/qcow2/disk.qcow2` that can be booted directly.
 
 ### Step 5: Create and Start Virtual Machine
 
@@ -121,7 +118,7 @@ Give execute permissions to your home and code directory for the quemu user to e
 
 ```bash
 chmod o+x /home/
-sudo qemu-img resize ./9centos/qcow2/disk.qcow2 +30G
+sudo qemu-img resize ./output/qcow2/disk.qcow2 +30G
 ```
 
 ```bash
@@ -130,7 +127,7 @@ sudo virt-install \
   --name microshift-workshop-4.21 \
   --vcpus 2 \
   --memory 4096 \
-  --disk path=./9centos/qcow2/disk.qcow2,format=qcow2 \
+  --disk path=./output/qcow2/disk.qcow2,format=qcow2 \
   --network network=bootc-isolated,model=virtio \
   --import \
   --os-variant centos-stream9 \
