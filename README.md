@@ -148,6 +148,7 @@ sudo virsh domifaddr microshift-workshop-4.21
 ```bash
 # SSH into the running VM (replace <vm-ip> with actual IP from Step 6)
 ssh centos@<vm-ip>
+#password is bootc
 ```
 
 ### Step 8: Verify MicroShift Services
@@ -347,6 +348,8 @@ After the reboot completes (wait ~2-3 minutes):
 ```bash
 # Reconnect to the VM
 ssh centos@<vm-ip>
+#password is bootc
+
 ```
 
 Verify the upgrade was successful:
