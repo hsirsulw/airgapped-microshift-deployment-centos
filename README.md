@@ -202,7 +202,6 @@ sudo bash ./setup-isolate-net.sh
 Give execute permissions to your home and code directory for the quemu user to enter your home directory:
 
 ```bash
-chmod o+x /home/
 sudo qemu-img resize ./output/qcow2/disk.qcow2 +30G
 sudo mv ./output/qcow2/disk.qcow2 /var/lib/libvirt/images/microshift-workshop-4.21.qcow2
 ```
