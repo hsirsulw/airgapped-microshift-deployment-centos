@@ -204,6 +204,7 @@ Give execute permissions to your home and code directory for the quemu user to e
 ```bash
 chmod o+x /home/
 sudo qemu-img resize ./output/qcow2/disk.qcow2 +30G
+sudo mv ./output/qcow2/disk.qcow2 /var/lib/libvirt/images/microshift-workshop-4.21.qcow2
 ```
 
 ```bash
@@ -212,7 +213,7 @@ sudo virt-install \
   --name microshift-workshop-4.21 \
   --vcpus 2 \
   --memory 4096 \
-  --disk path=./output/qcow2/disk.qcow2,format=qcow2 \
+  --disk path=/var/lib/libvirt/images/microshift-workshop-4.21.qcow2,format=qcow2 \
   --network network=bootc-isolated,model=virtio \
   --import \
   --os-variant centos-stream9 \
