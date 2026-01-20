@@ -489,7 +489,9 @@ Use this option if your build machine and MicroShift VM are on the same network 
 ```bash
 # Tag the image with registry destination
 sudo podman tag localhost/microshift-offline:c10 <local-registry:port>/microshift-offline:c10
-
+```
+# Push image to local registry
+```bash
 # Push to registry
 sudo podman push <local-registry:port>/microshift-offline:c10
 ```
