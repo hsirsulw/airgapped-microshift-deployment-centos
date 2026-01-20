@@ -45,6 +45,7 @@ When the system boots:
 ├── Containerfile*          # Main containerfile for building bootc image with Centos9 base image
 ├── Containerfile.c10       # For CentOS 10 base image (bootc switch demos)
 ├── image-list.txt          # List of container images to embed CentOs9
+├── registry-images.txt          # List of container images to push local registry
 ├── image-centos10.txt          # List of container images to embed for CentOs 10
 ├── local-registry.sh       # Script to mirror images to local registry
 ├── setup-isolate-net.sh    # Script for isolated network setup
@@ -70,6 +71,68 @@ cd airgapped-microshift-deployment-centos
 # Create directories for different builds
 mkdir output  # For CentOS 9 builds
 ```
+
+---
+
+## Prerequisites: Set Up Local Registry (Required Before Building)
+
+Before proceeding with the build process, you must set up a local registry to store container images. This is essential for air-gapped deployments.
+
+### Prerequisite 1: Create Local Registry and Pull Images
+
+**On your build machine**, run the local registry setup script:
+
+```bash
+# Run the local registry script to create registry and populate with images
+sudo bash ./local-registry.sh
+```
+
+**What this does:**
+- Creates a local Docker registry container running on port 5000
+- Pulls all required container images from `registry-images.txt`
+- Stores them in the local registry for offline use
+
+**Expected output:**
+- Registry container should be running
+- Images from `registry-images.txt` will be pulled and stored
+
+### Prerequisite 2: Configure Registry in Containerfile
+
+**From the repository root**, run the registry configuration script:
+
+```bash
+# Configure the registry IP in the offline configuration
+sudo bash ./assets/registry-config.sh
+```
+
+**What this does:**
+- Updates the `99-offline.conf` file with your local registry IP address
+- Modifies the registry source to use the local registry instead of external sources
+
+### Prerequisite 3: Verify Local Registry is Working
+
+Verify that your local registry is accessible:
+
+```bash
+# Check registry catalog
+curl http://<registry-ip>:5000/v2/_catalog
+```
+
+**Expected output:**
+- JSON output showing available images in the registry
+
+**Optional: Pull Images Directly (for testing)**
+
+If you want to pull images from the local registry on your host system:
+
+```bash
+# Pull an image from the local insecure registry
+podman pull http://<registry-ip>:5000/<image-name> --tls-verify false
+```
+
+**Note:** The `--tls-verify false` flag is used because the local registry is not configured with TLS certificates (insecure registry).
+
+---
 
 ### Step 2: Examine the Containerfile
 
@@ -111,6 +174,28 @@ sudo podman run --rm -it --privileged \
 ```
 
 This generates a QCOW2 disk image in `./output/qcow2/disk.qcow2` that can be booted directly.
+
+---
+
+## Step 4b: Setup Isolated Network for bootc VM
+
+Before creating the virtual machine, you must set up an isolated network that the bootc VM will use. This ensures the VM operates independently with proper network configuration.
+
+```bash
+# Create the isolated network for bootc VMs
+sudo bash ./setup-isolate-net.sh
+```
+
+**What this does:**
+- Creates a libvirt virtual network named `bootc-isolated`
+- Configures network isolation for the MicroShift VM
+- Sets up necessary network bridges for VM communication
+
+**Expected output:**
+- Network `bootc-isolated` is created and active
+- Ready for VM deployment
+
+---
 
 ### Step 5: Create and Start Virtual Machine
 
