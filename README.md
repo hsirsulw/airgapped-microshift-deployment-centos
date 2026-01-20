@@ -413,7 +413,9 @@ scp centos-10-microshift.tar centos@<vm-ip>:/var/tmp/
 ```bash
 # SSH into the VM
 ssh centos@<vm-ip>
+```
 
+```bash
 # Load the image from tar
 sudo podman load -i /var/tmp/centos-10-microshift.tar
 ```
