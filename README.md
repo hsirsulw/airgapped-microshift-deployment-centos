@@ -296,7 +296,7 @@ oc apply -f /etc/microshift/manifests.d/001-test-app/test-app.yaml
 
 # Verify the pod is running
 oc get pods -A
-oc get pods -n default
+oc get pods
 ```
 
 ### Step 12: Access the Application
