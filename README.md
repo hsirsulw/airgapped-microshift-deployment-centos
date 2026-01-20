@@ -90,7 +90,7 @@ Key components in the Containerfile:
 
 ```bash
 # Build the container image
-sudo podman build -t microshift-bootc9:4.21 .
+sudo podman build -t microshift-offline:c9 .
 ```
 
 This creates a container image containing:
@@ -107,7 +107,7 @@ sudo podman run --rm -it --privileged \
   -v $(pwd)/output:/output \
   -v /var/lib/containers/storage:/var/lib/containers/storage \
   quay.io/centos-bootc/bootc-image-builder:latest \
-  --type qcow2 localhost/microshift-bootc9:4.21
+  --type qcow2 localhost/microshift-offline:c9
 ```
 
 This generates a QCOW2 disk image in `./output/qcow2/disk.qcow2` that can be booted directly.
@@ -279,7 +279,7 @@ This section demonstrates how to upgrade a running MicroShift system from CentOS
 
 ```bash
 # Build CentOS 10 variant with MicroShift
-sudo podman build -f Containerfile.c10 -t microshift-bootc:c10
+sudo podman build -f Containerfile.c10 -t microshift-offline:c10
 ```
 
 This creates a new container image based on CentOS Stream 10 with the same MicroShift configuration.
@@ -296,10 +296,10 @@ Use this option if your build machine and MicroShift VM are on the same network 
 
 ```bash
 # Tag the image with registry destination
-sudo podman tag localhost/microshift-bootc:c10 192.168.122.200:5000/microshift-bootc:c10
+sudo podman tag localhost/microshift-offline:c10 192.168.122.200:5000/microshift-offline:c10
 
 # Push to registry
-sudo podman push 192.168.122.200:5000/microshift-bootc:c10
+sudo podman push 192.168.122.200:5000/microshift-offline:c10
 ```
 
 **Expected output:**
@@ -312,7 +312,7 @@ sudo podman push 192.168.122.200:5000/microshift-bootc:c10
 
 ```bash
 # Switch to the new CentOS 10 image from registry
-sudo bootc switch 192.168.122.200:5000/microshift-bootc:c10
+sudo bootc switch 192.168.122.200:5000/microshift-offline:c10
 ```
 
 **What happens:**
@@ -328,7 +328,7 @@ sudo bootc status
 ```
 
 **Expected output:**
-- Current image: `microshift-bootc:c10`
+- Current image: `microshift-offline:c10`
 - Status shows staged/pending changes
 
 Reboot to apply the changes:
@@ -358,7 +358,7 @@ cat /etc/os-release
 
 # Check bootc status
 sudo bootc status
-# Should show microshift-bootc:c10 as active
+# Should show microshift-offline:c10 as active
 
 # Verify MicroShift services
 sudo systemctl status microshift-make-rshared.service
@@ -382,7 +382,7 @@ Use this option for air-gapped environments or when direct registry access is no
 
 ```bash
 # Save the image to a tar archive
-sudo podman save -o centos-10-microshift.tar localhost/microshift-bootc:c10
+sudo podman save -o centos-10-microshift.tar localhost/microshift-offline:c10
 
 # Verify the tar file was created
 ls -lh centos-10-microshift.tar
@@ -427,7 +427,7 @@ sudo podman load -i /var/tmp/centos-10-microshift.tar
 
 ```bash
 # Switch to local image using containers-storage transport
-sudo bootc switch --transport containers-storage localhost/microshift-bootc:c10
+sudo bootc switch --transport containers-storage localhost/microshift-offline:c10
 ```
 
 **What happens:**
