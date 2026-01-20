@@ -297,10 +297,10 @@ Use this option if your build machine and MicroShift VM are on the same network 
 
 ```bash
 # Tag the image with registry destination
-sudo podman tag localhost/microshift-offline:c10 192.168.122.200:5000/microshift-offline:c10
+sudo podman tag localhost/microshift-offline:c10 <local-registry:port>/microshift-offline:c10
 
 # Push to registry
-sudo podman push 192.168.122.200:5000/microshift-offline:c10
+sudo podman push <local-registry:port>/microshift-offline:c10
 ```
 
 **Expected output:**
@@ -313,7 +313,7 @@ sudo podman push 192.168.122.200:5000/microshift-offline:c10
 
 ```bash
 # Switch to the new CentOS 10 image from registry
-sudo bootc switch 192.168.122.200:5000/microshift-offline:c10
+sudo bootc switch <local-registry:port>/microshift-offline:c10
 ```
 
 **What happens:**
