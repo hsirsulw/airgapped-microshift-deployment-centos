@@ -2,7 +2,7 @@
 
 # Configuration
 REGISTRY="localhost:5000"
-IMAGE_LIST="image-list.txt"
+IMAGE_LIST="registry-images.txt"
 
 # 1. Check if image list exists
 if [ ! -f "$IMAGE_LIST" ]; then
