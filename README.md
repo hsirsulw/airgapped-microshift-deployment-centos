@@ -1,8 +1,8 @@
 # Airgapped MicroShift Deployment with bootc Embedded Containers
 
-## What is this project about?
+## What is this Lab about?
 
-This project demonstrates how to build **self-contained MicroShift appliances** that can run completely offline without any internet connectivity. By embedding MicroShift and all required container images directly into the OS image during build time, you create immutable, bootable systems that start up fully functional Kubernetes clusters instantly.
+This Lab demonstrates how to build **self-contained MicroShift appliances** that can run completely offline without any internet connectivity. By embedding MicroShift and all required container images directly into the OS image during build time, you create immutable, bootable systems that start up fully functional Kubernetes clusters instantly.
 
 ## Why do we need this? (The Disconnected Environment Challenge)
 
