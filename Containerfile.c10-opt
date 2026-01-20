@@ -82,8 +82,8 @@ RUN chmod +x /usr/local/bin/*.sh /usr/bin/fix-network.sh && \
 # --------------------------------------------------
 RUN firewall-offline-cmd --zone=public --add-port=22/tcp --add-port=80/tcp --add-port=443/tcp --add-port=6443/tcp --add-port=30000-32767/tcp && \
     firewall-offline-cmd --zone=trusted --add-source=10.42.0.0/16 --add-source=169.254.169.1 && \
-    useradd -m -d /var/home/hrushabh -G wheel hrushabh && \
-    echo "hrushabh:redhat" | chpasswd && \
+    useradd -m -d /var/home/centos -G wheel centos && \
+    echo "centos:bootc" | chpasswd && \
     printf "[Unit]\nDescription=Setup Storage\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/setup-storage.sh\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n" > /etc/systemd/system/microshift-storage-setup.service && \
     printf "[Unit]\nDescription=Make root filesystem shared\nBefore=microshift.service\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/mount --make-rshared /\n\n[Install]\nWantedBy=multi-user.target\n" > /usr/lib/systemd/system/microshift-make-rshared.service
 
