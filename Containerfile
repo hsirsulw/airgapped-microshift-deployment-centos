@@ -106,8 +106,8 @@ RUN firewall-offline-cmd --zone=public --add-port=22/tcp \
  && firewall-offline-cmd --zone=public --add-port=30000-32767/tcp \
  && firewall-offline-cmd --zone=trusted --add-source=10.42.0.0/16 \
  && firewall-offline-cmd --zone=trusted --add-source=169.254.169.1 \
- && useradd -m -d /var/home/hrushabh -G wheel hrushabh \
- && echo "hrushabh:redhat" | chpasswd
+ && useradd -m -d /var/home/centos -G wheel centos \
+ && echo "centos:bootc" | chpasswd
 
 # --------------------------------------------------
 # Systemd services
