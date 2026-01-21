@@ -67,7 +67,7 @@ RUN mkdir -p /etc/cni/net.d /etc/microshift/manifests.d/001-test-app /usr/local/
     mv tmp_scripts/embed_image.sh /usr/local/bin/embed_image.sh && \
     mv tmp_scripts/copy_embed.sh /usr/local/bin/copy_embed.sh && \
     mv tmp_scripts/microshift-embed.service /usr/lib/systemd/system/ && \
-    mv tmp_manifests/test-app.yaml /etc/microshift/manifests.d/001-test-app/ && \
+    mv tmp_manifests/kustomization.yaml /etc/microshift/manifests.d/001-test-app/ && \
     rm -rf ./tmp_assets ./tmp_scripts ./tmp_manifests
 
 # --------------------------------------------------
