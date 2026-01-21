@@ -77,7 +77,7 @@ COPY scripts/setup.sh /usr/local/bin/setup-storage.sh
 COPY scripts/embed_image.sh /usr/local/bin/embed_image.sh
 COPY scripts/copy_embed.sh /usr/local/bin/copy_embed.sh
 
-COPY manifests/kustomization.yaml /etc/microshift/manifests.d/001-test-app/
+COPY manifests/ /etc/microshift/manifests.d/001-test-app/
 COPY image-list.txt /tmp/image-list.txt
 
 COPY assets/fix-network.sh /usr/bin/fix-network.sh
