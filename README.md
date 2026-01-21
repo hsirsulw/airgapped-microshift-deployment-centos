@@ -241,8 +241,6 @@ ssh centos@<vm-ip>
 Once connected to the VM, verify that all services started correctly:
 
 ```bash
-# Check that MicroShift started successfully
-oc get nodes
 
 # Verify systemd services are running
 sudo systemctl status microshift-make-rshared.service
@@ -251,7 +249,6 @@ sudo systemctl status microshift
 ```
 
 **Expected output:**
-- `oc get nodes` should show the node in Ready state
 - All three systemd services should show `active (exited)` or `active (running)`
 
 ### Step 9: Configure Kubernetes Access
