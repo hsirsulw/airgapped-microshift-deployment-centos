@@ -8,6 +8,9 @@ FROM quay.io/centos-bootc/centos-bootc:stream9
 # 3. Silence the subscription-manager plugin to save time
 RUN echo -e "max_parallel_downloads=10\ninstall_weak_deps=False" >> /etc/dnf/dnf.conf && \
     sed -i 's/enabled=1/enabled=0/' /etc/yum/pluginconf.d/subscription-manager.conf
+RUN sed -i 's/keepcache=0/keepcache=1/' /etc/dnf/dnf.conf && \
+    echo "metadata_expire=6h" >> /etc/dnf/dnf.conf && \
+    echo "minrate=100k" >> /etc/dnf/dnf.conf
 
 ARG ARCH=x86_64
 ENV MICROSHIFT_RPM_URL=https://github.com/microshift-io/microshift/releases/download/4.21.0_gbc8e20c07_4.21.0_okd_scos.ec.14/microshift-rpms-${ARCH}.tgz
