@@ -153,7 +153,7 @@ Key components in the Containerfile:
 
 ```bash
 # Build the container image
-sudo podman build -t microshift-offline:c9 .
+time sudo podman build -t microshift-offline:c9 .
 ```
 
 This creates a container image containing:
@@ -166,7 +166,7 @@ This creates a container image containing:
 
 ```bash
 # Use bootc-image-builder to create a bootable disk image
-sudo podman run --rm -it --privileged \
+time sudo podman run --rm -it --privileged \
   -v $(pwd)/output:/output \
   -v /var/lib/containers/storage:/var/lib/containers/storage \
   quay.io/centos-bootc/bootc-image-builder:latest \
@@ -365,7 +365,7 @@ This section demonstrates how to upgrade a running MicroShift system from CentOS
 
 ```bash
 # Build CentOS 10 variant with MicroShift
-sudo podman build -f Containerfile.c10 -t microshift-offline:c10
+time sudo podman build -f Containerfile.c10 -t microshift-offline:c10
 ```
 
 This creates a new container image based on CentOS Stream 10 with the same MicroShift configuration.
