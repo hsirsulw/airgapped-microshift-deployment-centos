@@ -64,7 +64,7 @@ spec:
     spec:
       serviceAccountName: example-apps-wordpress
       containers:
-      - image: wordpress:6.2.1-apache
+      - image: docker.io/library/wordpress:6.2.1-apache
         name: wordpress
         env:
         - name: WORDPRESS_DB_HOST
