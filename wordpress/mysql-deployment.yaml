@@ -49,7 +49,7 @@ spec:
         tier: mysql
     spec:
       containers:
-      - image: mysql:8.0
+      - image: docker.io/library/mysql:8.0
         name: mysql
         env:
         - name: MYSQL_ROOT_PASSWORD
