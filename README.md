@@ -59,20 +59,12 @@ When the system boots:
 
 This hands-on lab guide walks you through building and deploying a complete MicroShift cluster in a bootc image.
 
-### Step 1: Prepare Your Build Environment
-
+### Pre-requesites
 ```bash
 # Clone the repository
 git clone https://github.com/hsirsulw/airgapped-microshift-deployment-centos.git
 cd airgapped-microshift-deployment-centos
 ```
-
-```bash
-# Create directories for different builds
-mkdir output  # For CentOS 9 builds
-```
-
----
 
 ## Prerequisites: Set Up Local Registry (Required Before Building)
 
@@ -161,6 +153,14 @@ podman pull http://<registry-ip>:5000/<image-name> --tls-verify false
 **Note:** The `--tls-verify false` flag is used because the local registry is not configured with TLS certificates (insecure registry).
 
 ---
+### Step 1: Prepare Your Build Environment
+
+
+```bash
+# Create directories for different builds
+mkdir output  # For CentOS 9 builds
+```
+
 
 ### Step 2: Examine the Containerfile
 
