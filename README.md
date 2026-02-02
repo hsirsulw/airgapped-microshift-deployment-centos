@@ -80,21 +80,49 @@ Before proceeding with the build process, you must set up a local registry to st
 
 ### Prerequisite 1: Create Local Registry and Pull Images
 
-**On your build machine**, run the local registry setup script:
+**⚠️ NOTE: This prerequisite is only required if testing locally with a connected registry. For fully air-gapped deployments, skip this and proceed directly to Step 2.**
+
+**On your build machine**, run the setup script to create and configure the local registry:
 
 ```bash
-# Run the local registry script to create registry and populate with images
-sudo bash ./local-registry.sh
+# Make the setup script executable (first time only)
+chmod +x ./setup-local-registry.sh
+
+# Run the setup script with sudo
+sudo ./setup-local-registry.sh
 ```
 
 **What this does:**
-- Creates a local Docker registry container running on port 5000
-- Pulls all required container images from `registry-images.txt`
-- Stores them in the local registry for offline use
+- Creates the registry storage directory at `/opt/registry/data`
+- Launches a local Docker registry container on port 5000
+- Configures podman to trust the insecure local registry
+- Verifies the registry is running and accessible
+- Automatically runs `local-registry.sh` to mirror images from `registry-images.txt`
 
 **Expected output:**
-- Registry container should be running
-- Images from `registry-images.txt` will be pulled and stored
+- Registry container running on localhost:5000
+- All images from `registry-images.txt` mirrored to the local registry
+- Helpful commands displayed for future reference
+
+**Troubleshooting:**
+
+If the registry container already exists:
+```bash
+# Check if registry is running
+sudo podman ps | grep registry
+
+# Restart registry if needed
+sudo podman restart registry
+
+# View registry logs
+sudo podman logs registry
+```
+
+To verify registry is working:
+```bash
+# Check registry catalog
+curl http://localhost:5000/v2/_catalog
+```
 
 ### Prerequisite 2: Configure Registry in Containerfile
 
