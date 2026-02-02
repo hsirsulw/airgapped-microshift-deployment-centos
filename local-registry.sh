@@ -37,7 +37,6 @@ while read -r IMAGE; do
     # --format v2s2: Upgrade old images to modern schema to prevent 500 errors
     skopeo copy --all \
         --preserve-digests \
-        --format v2s2 \
         --dest-tls-verify=false \
         docker://"$IMAGE" \
         docker://"$REGISTRY/$DEST_PATH"
