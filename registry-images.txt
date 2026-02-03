@@ -13,7 +13,7 @@ quay.io/okd/scos-content@sha256:f1ca9a58e0ebd6ede8f22c9695a0c492ae8798f2caf156e5
 quay.io/okd/scos-content@sha256:90eb67d5e93e014b8da68330a4b10d044f9c44645c4b77e9e88a7a0bec91f606
 quay.io/okd/scos-content@sha256:337207f2739b9f8a62315d7812b6405e9fff8ae1e299ed91dd57c5cc7bf5d6c9
 quay.io/okd/scos-content@sha256:b30af9c33bd2e2ff2a6adc7cabbbd7dbc4d0550a8c0fee1ed1d979898311fcb3
-quay.io/redhattraining/hello-world-nginx:v1.0
+quay.io/nginx/nginx-unprivileged:latest
 docker.io/library/wordpress:6.2.1-apache
 docker.io/library/mysql:8.0
 quay.io/centos-bootc/centos-bootc:stream9
