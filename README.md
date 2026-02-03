@@ -263,6 +263,9 @@ sudo virsh domifaddr microshift-workshop-4.21
 ssh centos@<vm-ip>
 #password is bootc
 ```
+```bash
+sudo bootc status
+```
 
 ### Step 8: Verify MicroShift Services
 
@@ -315,12 +318,14 @@ oc get pods -A
 Deploy a pre-configured test application:
 
 ```bash
-# Apply the pre-installed test app manifest
-oc apply -f /etc/microshift/manifests.d/001-test-app/test-app.yaml
-
 # Verify the pod is running
 oc get pods -A
 oc get pods
+```
+
+# The "Smoking Gun" Verification: Check the Kubernetes events. You are looking for the message: "Container image already present on machine".
+```bash
+oc get events -A | grep -i pull
 ```
 
 ### Step 12: Access the Application
