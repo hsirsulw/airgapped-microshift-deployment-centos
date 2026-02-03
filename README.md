@@ -323,7 +323,7 @@ oc get pods -A
 oc get pods
 ```
 
-# The "Smoking Gun" Verification: Check the Kubernetes events. You are looking for the message: "Container image already present on machine".
+### The "Smoking Gun" Verification: Check the Kubernetes events. You are looking for the message: "Container image already present on machine".
 ```bash
 oc get events -A | grep -i pull
 ```
