@@ -84,7 +84,7 @@ COPY scripts/setup.sh /usr/local/bin/setup-storage.sh
 COPY scripts/embed_image.sh /usr/local/bin/embed_image.sh
 COPY scripts/copy_embed.sh /usr/local/bin/copy_embed.sh
 
-COPY image-centos10.txt /tmp/image-list.txt
+COPY image-list.txt /tmp/image-list.txt
 COPY wordpress /usr/lib/microshift/manifests.d/wordpress
 COPY assets/fix-network.sh /usr/bin/fix-network.sh
 COPY assets/fix-network.service /etc/systemd/system/
