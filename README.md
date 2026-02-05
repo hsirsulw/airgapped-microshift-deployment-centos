@@ -147,10 +147,10 @@ If you want to pull images from the local registry on your host system:
 
 ```bash
 # Pull an image from the local insecure registry
-podman pull http://<registry-ip>:5000/<image-name> --tls-verify false
+podman pull docker://<registry-ip>:5000/<image-name> --tls-verify=false
 ```
 
-**Note:** The `--tls-verify false` flag is used because the local registry is not configured with TLS certificates (insecure registry).
+**Note:** The `--tls-verify=false` flag is used because the local registry is not configured with TLS certificates (insecure registry).
 
 ---
 ### Step 1: Prepare Your Build Environment
