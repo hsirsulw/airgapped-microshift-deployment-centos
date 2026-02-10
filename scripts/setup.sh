@@ -19,7 +19,7 @@ else
     vgchange -ay "$VG_NAME"
 fi
 
-# 2. Setup Local DNS for the Demo Route & Registry
+# 2. Setup Local DNS for Demo Routes & Registry
 MAX_RETRIES=30
 RETRY_COUNT=0
 PRIMARY_IP=""
@@ -38,27 +38,34 @@ if [ -z "$PRIMARY_IP" ]; then
     exit 1
 fi
 
-DOMAIN="hello-route-default.apps.example.com"
+# Domains
+HELLO_DOMAIN="hello-route-default.apps.example.com"
+WORDPRESS_DOMAIN="wordpress.apps.example.com"
 REGISTRY_DOMAIN="registry.local"
 REGISTRY_IP="192.168.100.1"
 
-# Clean up old entries and add fresh ones
-sed -i "/$DOMAIN/d" /etc/hosts
+# Clean old entries
+sed -i "/$HELLO_DOMAIN/d" /etc/hosts
+sed -i "/$WORDPRESS_DOMAIN/d" /etc/hosts
 sed -i "/$REGISTRY_DOMAIN/d" /etc/hosts
 
-echo "$PRIMARY_IP $DOMAIN" >> /etc/hosts
+# Add fresh entries
+echo "$PRIMARY_IP $HELLO_DOMAIN" >> /etc/hosts
+echo "$PRIMARY_IP $WORDPRESS_DOMAIN" >> /etc/hosts
 echo "$REGISTRY_IP $REGISTRY_DOMAIN" >> /etc/hosts
-echo "✅ Added $DOMAIN and $REGISTRY_DOMAIN to /etc/hosts"
+
+echo "✅ Added routes to /etc/hosts:"
+echo "   - $HELLO_DOMAIN → $PRIMARY_IP"
+echo "   - $WORDPRESS_DOMAIN → $PRIMARY_IP"
+echo "   - $REGISTRY_DOMAIN → $REGISTRY_IP"
 
 # 3. Setup Insecure Registry for Podman
 REG_CONF="/etc/containers/registries.conf"
 
 if [ -f "$REG_CONF" ]; then
-    # Check if the registry is already marked as insecure
     if ! grep -q "$REGISTRY_DOMAIN:5000" "$REG_CONF"; then
         echo "Adding $REGISTRY_DOMAIN:5000 to insecure registries in $REG_CONF..."
-        
-        # Append the configuration to the end of the file
+
         cat <<EOF >> "$REG_CONF"
 
 [[registry]]
