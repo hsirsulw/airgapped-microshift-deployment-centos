@@ -25,59 +25,58 @@ spec:
         app: hello
     spec:
       securityContext:
-        fsGroup: 101   # required for nginx-unprivileged + PVC
+        fsGroup: 101
       initContainers:
-      - name: init-www
-        image: quay.io/nginx/nginx-unprivileged:latest
-        imagePullPolicy: IfNotPresent
-        command:
-          - sh
-          - -c
-          - |
-            cat <<EOF > /usr/share/nginx/html/index.html
-            <html>
-              <head>
-                <title>MicroShift Demo</title>
-              </head>
-              <body style="font-family: sans-serif;">
-                <h1>🚀 MicroShift is Working!</h1>
-                <p>Hello, welcome to <b>DevConf.IN</b></p>
-                <p><i>Running nginx-unprivileged with persistent storage</i></p>
-              </body>
-            </html>
-            EOF
-        volumeMounts:
-        - name: storage
-          mountPath: /usr/share/nginx/html
+        - name: init-www
+          image: quay.io/nginx/nginx-unprivileged:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              cat <<EOF > /usr/share/nginx/html/index.html
+              🚀 MicroShift is alive at the edge!
+
+              No cloud drama.
+              No cluster overload.
+              Just tiny Kubernetes doing big things at DevConf.IN 😎
+
+              Running on bootc immutable OS…
+              So the system stays stable,
+              even if the demo operator doesn’t 😄
+              EOF
+          volumeMounts:
+            - name: storage
+              mountPath: /usr/share/nginx/html
       containers:
-      - name: nginx
-        image: quay.io/nginx/nginx-unprivileged:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: web-8080
-          containerPort: 8080
-        securityContext:
-          runAsNonRoot: true
-          allowPrivilegeEscalation: false
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 3
-          periodSeconds: 5
-        volumeMounts:
-        - name: storage
-          mountPath: /usr/share/nginx/html
+        - name: nginx
+          image: quay.io/nginx/nginx-unprivileged:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: web-8080
+              containerPort: 8080
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          volumeMounts:
+            - name: storage
+              mountPath: /usr/share/nginx/html
       volumes:
-      - name: storage
-        persistentVolumeClaim:
-          claimName: hello-pvc
+        - name: storage
+          persistentVolumeClaim:
+            claimName: hello-pvc
 ---
 apiVersion: v1
 kind: Service
