@@ -9,3 +9,4 @@ resources:
   - clusterrolebind.yaml
   - mysql-deployment.yaml
   - wordpress-deployment.yaml
+  - mysql-secret.yaml
