@@ -71,7 +71,6 @@ RUN mkdir -p /etc/cni/net.d \
 
 COPY assets/13-microshift-kindnet.conf /etc/crio/crio.conf.d/
 COPY assets/10-kindnet.conflist /etc/cni/net.d/
-COPY assets/99-offline.conf /etc/containers/registries.conf.d/
 
 COPY scripts/setup.sh /usr/local/bin/setup-storage.sh
 COPY scripts/embed_image.sh /usr/local/bin/embed_image.sh
@@ -80,21 +79,17 @@ COPY scripts/copy_embed.sh /usr/local/bin/copy_embed.sh
 COPY manifests/ /usr/lib/microshift/manifests.d/001-test-app/
 COPY image-list.txt /tmp/image-list.txt
 
-COPY assets/fix-network.sh /usr/bin/fix-network.sh
-COPY assets/fix-network.service /etc/systemd/system/
-
 # --------------------------------------------------
 # Permissions + embedding (minimal restorecon)
 # --------------------------------------------------
-RUN chmod +x /usr/local/bin/*.sh /usr/bin/fix-network.sh && \
+RUN chmod +x /usr/local/bin/*.sh \
     chmod 644 /etc/systemd/system/*.service || true
 
 RUN /usr/local/bin/embed_image.sh /tmp/image-list.txt
 
 RUN restorecon -v /usr/local/bin/* \
-               /usr/bin/fix-network.sh \
                /etc/systemd/system/* \
-               /etc/microshift/manifests.d/001-test-app/*
+               /usr/lib/microshift/manifests.d/001-test-app/*
 
 # --------------------------------------------------
 # Firewall + user + systemd units (combined)
