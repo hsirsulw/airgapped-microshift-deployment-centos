@@ -124,5 +124,4 @@ RUN rm -rf /usr/lib/microshift/manifests/microshift-olm && \
       microshift-make-rshared.service \
       microshift-embed.service \
       microshift-storage-setup.service \
-      fix-network.service \
       microshift.service
